@@ -2,6 +2,7 @@
 #define SPONGE_LIBSPONGE_BYTE_STREAM_HH
 
 #include <string>
+#include <vector>
 
 //! \brief An in-order byte stream.
 
@@ -17,7 +18,21 @@ class ByteStream {
     // that's a sign that you probably want to keep exploring
     // different approaches.
 
-    bool _error{};  //!< Flag indicating that the stream suffered an error.
+    bool error_{};      //!< Flag indicating that the stream suffered an error.
+    bool input_ended_;  // indicating that the input has ended
+
+    std::vector<uint8_t> stream_;  // use vector to simulate stream
+
+    size_t wcurr_;        // the next byte to be written
+    size_t rcurr_;        // the next byte to be read
+    size_t buffer_size_;  // the current buffer size
+    size_t wbytes_;       // total bytes written
+    size_t rbytes_;       // total bytes read
+    const size_t capacity_;
+
+  private:
+    inline void advanceWcurr(size_t steps) { wcurr_ = (wcurr_ + steps) % capacity_; }
+    inline void advanceRcurr(size_t steps) { rcurr_ = (rcurr_ + steps) % capacity_; }
 
   public:
     //! Construct a stream with room for `capacity` bytes.
@@ -38,7 +53,7 @@ class ByteStream {
     void end_input();
 
     //! Indicate that the stream suffered an error.
-    void set_error() { _error = true; }
+    void set_error() { error_ = true; }
     //!@}
 
     //! \name "Output" interface for the reader
@@ -59,7 +74,7 @@ class ByteStream {
     bool input_ended() const;
 
     //! \returns `true` if the stream has suffered an error
-    bool error() const { return _error; }
+    bool error() const { return error_; }
 
     //! \returns the maximum amount that can currently be read from the stream
     size_t buffer_size() const;

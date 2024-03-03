@@ -1,3 +1,4 @@
+find_program(CLANG_FORMAT "clang-format")
 if (NOT CLANG_FORMAT)
     if (DEFINED ENV{CLANG_FORMAT})
         set (CLANG_FORMAT_TMP $ENV{CLANG_FORMAT})

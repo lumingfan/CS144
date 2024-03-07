@@ -19,32 +19,27 @@ StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity),
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
     // empty data handler
-    if (data.empty()) {
-        if (eof) {
-            _output.end_input();
-        }
-        return ;
-    }
+    empty_data_handler(data, index, eof);
 
-    // DUMMY_CODE(data, index, eof);    
     const auto &pair_opt = 
         truncate(begin_idx(), end_idx(), index, data);
+    
+    // this data is invalid 
+    // 1. the entire data has been pushed into _output before
+    // 2. index is at the first unacceptable index or beyond
     if (pair_opt == std::nullopt) {
         return ;
     }
+
     const auto &[new_idx, new_data] = pair_opt.value();
     extend_buffer(available_capacity());
     put_data_to_buffer(new_idx, new_data);
     push_data_from_buffer();
 
-    // eof if the end of this data has been pushed from _buffer to output
-    if (eof && (index + data.length() == new_idx + new_data.length())) {
-        _eof = true;
-    }
-
-    if (_eof && empty()) {
-        _output.end_input();
-    }
+    bool last_ch_accepted = 
+        (index + data.length() == new_idx + new_data.length());
+    set_eof(eof, last_ch_accepted);
+    
 }
 
 size_t StreamReassembler::unassembled_bytes() const { return _unass_bytes; }
@@ -97,3 +92,23 @@ void StreamReassembler::extend_buffer(size_t new_size) {
     }
 }
     
+void StreamReassembler::empty_data_handler(const string &data, const size_t index, const bool eof) {
+    if (data.empty()) {
+        if (eof) {
+            _output.end_input();
+        }
+        return ;
+    }
+}
+
+void StreamReassembler::set_eof(bool eof, bool last_ch_accepted) {
+    // set _eof if the entire data has been _buffer or _output
+    if (eof && last_ch_accepted){
+        _eof = true;
+    }
+
+    // end input when all data in _buffer have been pushed into _output
+    if (_eof && empty()) {
+        _output.end_input();
+    }
+}

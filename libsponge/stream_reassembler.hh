@@ -18,20 +18,48 @@ class StreamReassembler {
   size_t _capacity;       //!< The maximum number of bytes
   size_t _next_data_idx;  //!< The index of next data which should be
                           // pushed into ByteStream
-  size_t _unass_bytes = 0;
-  bool _eof = false;
-  std::deque<std::pair<bool, char>> _buffer;
-  // buffer for unassembled substrings and its begin index
+  size_t _unass_bytes = 0; //!< The unassembled bytes stored in buffer
+  bool _eof = false;       //!< Indicator of eof
 
+
+  // buffer for <flag, unassembled byte> pair,
+  // flag indicates if this position has a valid byte
+  // dynamic grow/shrink based on the buffer_size of _output
+  std::deque<std::pair<bool, char>> _buffer;
+
+  //! \brief Push the data stored in _buffer to _output
   void push_data_from_buffer();
+
+  //! \brief Put the received data to _buffer at idx
   void put_data_to_buffer(size_t idx, std::string data);
+
+  //! \brief Extend the buffer to new_size
   void extend_buffer(size_t new_size);
+
+  //! \brief truncate the input data to get the valid part which fit in _capacity range
+  //! \param begin_idx the first unassembled byte's index
+  //! \param end_idx the last unassembled byte's index
+  //! \param idx the index of input data
+  //! \param data the input data which will be truncated
   std::optional<std::pair<size_t, std::string>> truncate(size_t begin_idx, size_t end_idx, size_t idx,
                                                          const std::string &data);
 
+  //! \brief get the first unassembled byte's index
   inline size_t begin_idx() const { return _next_data_idx; }
+
+  //! \brief get the last unassembled byte's index
   inline size_t end_idx() const { return _next_data_idx - _output.buffer_size() + _capacity - 1; }
+
+  //! \brief get the available capacity for unassembled buffer
   inline size_t available_capacity() const {return _capacity - _output.buffer_size();}
+
+  //! \brief handle empty input case
+  void empty_data_handler(const string &data, const size_t index, const bool eof);
+
+  //! \brief set eof if the entire data has been pushed into _output
+  void set_eof(bool eof, bool last_ch_accepted) {
+    
+  }
 
  public:
   //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.

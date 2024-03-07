@@ -19,7 +19,9 @@ StreamReassembler::StreamReassembler(const size_t capacity) : _output(capacity),
 //! contiguous substrings and writes them into the output stream in order.
 void StreamReassembler::push_substring(const string &data, const size_t index, const bool eof) {
     // empty data handler
-    empty_data_handler(data, index, eof);
+    if (empty_data_handler(data, eof)) {
+        return ;
+    }
 
     const auto &pair_opt = 
         truncate(begin_idx(), end_idx(), index, data);
@@ -39,7 +41,6 @@ void StreamReassembler::push_substring(const string &data, const size_t index, c
     bool last_ch_accepted = 
         (index + data.length() == new_idx + new_data.length());
     set_eof(eof, last_ch_accepted);
-    
 }
 
 size_t StreamReassembler::unassembled_bytes() const { return _unass_bytes; }
@@ -92,13 +93,14 @@ void StreamReassembler::extend_buffer(size_t new_size) {
     }
 }
     
-void StreamReassembler::empty_data_handler(const string &data, const size_t index, const bool eof) {
+bool StreamReassembler::empty_data_handler(const string &data, const bool eof) {
     if (data.empty()) {
         if (eof) {
             _output.end_input();
         }
-        return ;
+        return true;
     }
+    return false;
 }
 
 void StreamReassembler::set_eof(bool eof, bool last_ch_accepted) {

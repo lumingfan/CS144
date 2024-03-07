@@ -53,13 +53,11 @@ class StreamReassembler {
   //! \brief get the available capacity for unassembled buffer
   inline size_t available_capacity() const {return _capacity - _output.buffer_size();}
 
-  //! \brief handle empty input case
-  void empty_data_handler(const string &data, const size_t index, const bool eof);
+  //! \brief handle empty input case, return true if empty, false otherwise
+  bool empty_data_handler(const std::string &data, const bool eof);
 
   //! \brief set eof if the entire data has been pushed into _output
-  void set_eof(bool eof, bool last_ch_accepted) {
-    
-  }
+  void set_eof(bool eof, bool last_ch_accepted);
 
  public:
   //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.

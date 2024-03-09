@@ -20,6 +20,24 @@ class TCPReceiver {
     //! The maximum number of bytes we'll store.
     size_t _capacity;
 
+    //! The absolute ack number, valid when syn bit is received
+    size_t _ack_no = 0;
+
+    //! The checkpoint, index of the last reassembled byte 
+    size_t _checkpoint = 0;
+
+    //! The syn bit
+    bool _syn = false;
+
+    //! Initial Sequence Number for syn
+    std::unique_ptr<WrappingInt32> _isn{nullptr};
+
+  private: 
+    //! \brief convert an absolute sequence number to stream index 
+    inline size_t abs_seq_to_stream_idx(size_t abs_seq_no) {
+      return abs_seq_no - 1;
+    }
+
   public:
     //! \brief Construct a TCP receiver
     //!

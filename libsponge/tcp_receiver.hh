@@ -38,6 +38,20 @@ class TCPReceiver {
       return abs_seq_no - 1;
     }
 
+    //! \brief process syn/fin 
+    //! return true if connection is valid
+    //! false otherwise
+    bool connect_process(const TCPSegment &seg);
+
+    //! \brief extract sequence number from seg
+    WrappingInt32 extract_seq_no(const TCPSegment &seg);
+
+    //! \brief convert sequence number to stream idx
+    size_t seqno_to_idx(WrappingInt32 seq_no);
+
+    //! \brief update metadata after processing payload
+    void update_meta();
+
   public:
     //! \brief Construct a TCP receiver
     //!

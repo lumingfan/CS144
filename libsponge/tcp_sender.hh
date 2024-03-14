@@ -23,14 +23,90 @@ class TCPSender {
     //! outbound queue of segments that the TCPSender wants sent
     std::queue<TCPSegment> _segments_out{};
 
+    //! outstanding deque of segments that the TCPSender 
+    std::deque<TCPSegment> _segments_outstanding{};
+
+    //! initial retransmission timer for the connection, don't change 
+    const unsigned int _initial_retransmission_timeout;
+
     //! retransmission timer for the connection
-    unsigned int _initial_retransmission_timeout;
+    unsigned int _retransmission_timeout;
+    //! the remained time to trig timeout
+    unsigned int _remained_time_to_timeout;
 
     //! outgoing stream of bytes that have not yet been sent
     ByteStream _stream;
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    //! the window's size, default is 1 (i.e. haven't receive reply) 
+    uint16_t _window_size{1};
+
+    //! checkpoint, numbers of rbytes of stream 
+    uint64_t _checkpoint{0};
+
+    //! bytes in flight
+    uint64_t _bytes_in_flight{0};
+
+    //! the number of consecutive retransmissions
+    uint64_t _retrans_times{0};
+
+
+  private: 
+    //! does the first syn has been sent
+    inline bool syn_need_to_be_sent() const {
+      return _next_seqno == 0; 
+    }
+
+    //! does the fin needs to be sent
+    //! if payload_size is equal to available_window_size, 
+    //! then fin can't be send, 
+    //! because fin also occupy window space by 1 
+    inline bool fin_need_to_be_sent(uint64_t payload_size) const {
+      return _stream.eof() && _next_seqno < _stream.bytes_written() + 2 && available_window() > payload_size;
+    }
+
+    //! check if window is full
+    inline bool window_is_full_not_zero() const {
+      return _window_size == _bytes_in_flight && _window_size != 0;
+    }
+    //! get available window size
+    inline uint64_t available_window() const {
+      if (_window_size == 0) {
+        return 1;
+      }
+      return _window_size - _bytes_in_flight;
+    } 
+
+    //! increment _next_seqno by n
+    inline void increase_next_seqno(uint64_t n) {
+      _next_seqno += n;
+    }
+
+    
+    //! get the available payload size by comparing _window_size, 
+    //! buffer_size of _stream and TCPConfig::MAX PAYLOAD SIZE
+    //! if window size is 0 and buffer size is not 0, return 1
+    uint64_t max_payload_size();
+
+    //! Create a tcp segment with given syn, fin, seq_no and payload
+    //!!!! payload will be invalid after calling this function
+    TCPSegment create_tcp_segment(bool syn, bool fin, WrappingInt32 seq_no, std::string &payload) const ;
+
+    //! send tcp segment with a backup, then increase _next_seqno by n  
+    void send_tcp_segment(TCPSegment seg, uint64_t n);
+
+    //! check if this seg has been acked
+    bool check_seqno_acked(const TCPSegment &seg, const WrappingInt32 ackno) ;
+
+    //! check if this ack is valid
+    bool check_ackno_valid(const WrappingInt32 ackno) const ;
+
+    //! restart retransmission timer
+    inline void restart_timer() {
+      _remained_time_to_timeout = _retransmission_timeout;
+    }
 
   public:
     //! Initialize a TCPSender

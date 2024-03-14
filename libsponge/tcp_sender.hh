@@ -40,6 +40,9 @@ class TCPSender {
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
 
+    //! the (absolute) acked number for the last ack_received
+    uint64_t _last_ackno{0};
+
     //! the window's size, default is 1 (i.e. haven't receive reply) 
     uint16_t _window_size{1};
 
@@ -67,17 +70,32 @@ class TCPSender {
       return _stream.eof() && _next_seqno < _stream.bytes_written() + 2 && available_window() > payload_size;
     }
 
-    //! check if window is full
-    inline bool window_is_full_not_zero() const {
-      return _window_size == _bytes_in_flight && _window_size != 0;
-    }
     //! get available window size
     inline uint64_t available_window() const {
       if (_window_size == 0) {
+        // treat window_size as 1
+        if (_bytes_in_flight != 0) {
+          return 0;
+        }
         return 1;
+      }
+      if (_window_size <= _bytes_in_flight) {
+        return 0;
       }
       return _window_size - _bytes_in_flight;
     } 
+
+    //! get available payload size
+    //! i.e. min(available window size, available buffer size)
+    uint64_t available_payload_size() const ;
+
+    //! get the available payload size by comparing _window_size, 
+    //! buffer_size of _stream and TCPConfig::MAX PAYLOAD SIZE
+    //! if window size is 0 and buffer size is not 0, return 1
+    uint64_t max_payload_size() const ;
+
+
+
 
     //! increment _next_seqno by n
     inline void increase_next_seqno(uint64_t n) {
@@ -85,11 +103,6 @@ class TCPSender {
     }
 
     
-    //! get the available payload size by comparing _window_size, 
-    //! buffer_size of _stream and TCPConfig::MAX PAYLOAD SIZE
-    //! if window size is 0 and buffer size is not 0, return 1
-    uint64_t max_payload_size();
-
     //! Create a tcp segment with given syn, fin, seq_no and payload
     //!!!! payload will be invalid after calling this function
     TCPSegment create_tcp_segment(bool syn, bool fin, WrappingInt32 seq_no, std::string &payload) const ;
@@ -101,7 +114,7 @@ class TCPSender {
     bool check_seqno_acked(const TCPSegment &seg, const WrappingInt32 ackno) ;
 
     //! check if this ack is valid
-    bool check_ackno_valid(const WrappingInt32 ackno) const ;
+    bool check_ackno_valid(const WrappingInt32 ackno) ;
 
     //! restart retransmission timer
     inline void restart_timer() {

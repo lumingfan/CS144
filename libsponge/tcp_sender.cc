@@ -27,46 +27,43 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 uint64_t TCPSender::bytes_in_flight() const { return _bytes_in_flight; }
 
 void TCPSender::fill_window() {
-    std::string payload;
-    
-    // window is full and not is zero
-    if (window_is_full_not_zero()) {
-        return ;
-    }
-
     // normal segment with payloads
-    payload = _stream.read(max_payload_size());
-    _checkpoint = _stream.bytes_read();
-    uint64_t size = payload.size();
+    while (available_window() != 0) {
 
-    bool fin_flag = false;
-    bool syn_flag = false;
-    if (fin_need_to_be_sent(size)) {
-        fin_flag = true;
+        std::string payload = _stream.read(max_payload_size());
+        _checkpoint = _stream.bytes_read();
+        uint64_t size = payload.size();
+
+        bool fin_flag = false;
+        bool syn_flag = false;
+        if (fin_need_to_be_sent(size)) {
+            fin_flag = true;
+        }
+
+        if (syn_need_to_be_sent()) {
+            // syn segment, only be sent once
+            syn_flag = true;
+        }
+
+        // no message should be sent
+        if (size == 0 && !fin_flag && !syn_flag) {
+            break ;
+        }
+
+        TCPSegment seg = create_tcp_segment(syn_flag, fin_flag, wrap(_next_seqno, _isn), payload);
+        send_tcp_segment(seg, size);
     }
-
-    if (syn_need_to_be_sent()) {
-        // syn segment, only be sent once
-        syn_flag = true;
-    }
-
-    // no message should be sent
-    if (size == 0 && !fin_flag && !syn_flag) {
-        return ;
-    }
-
-    TCPSegment seg = create_tcp_segment(syn_flag, fin_flag, wrap(_next_seqno, _isn), payload);
-    send_tcp_segment(seg, size);
 }
 
 //! \param ackno The remote receiver's ackno (acknowledgment number)
 //! \param window_size The remote receiver's advertised window size
 void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_size) { 
+    _window_size = window_size;
+
+    // ignore invalid ackno 
     if (!check_ackno_valid(ackno)) {
         return ;
     }
-
-    _window_size = window_size;
 
     // remove acked segments
     while (!_segments_outstanding.empty() && check_seqno_acked(_segments_outstanding.front(), ackno)) {
@@ -93,8 +90,10 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
         _segments_out.push(_segments_outstanding.front());
     }
 
-    _retrans_times += 1;
-    _retransmission_timeout <<= 1;
+    if (_window_size != 0) {
+        _retrans_times += 1;
+        _retransmission_timeout <<= 1;
+    }
 
     restart_timer();
 }
@@ -107,12 +106,16 @@ void TCPSender::send_empty_segment() {
     _segments_out.push(TCPSegment());
 }
 
-uint64_t TCPSender::max_payload_size() { 
+uint64_t TCPSender::max_payload_size() const { 
+    uint64_t res = available_payload_size();
+    res = res < TCPConfig::MAX_PAYLOAD_SIZE ? res : TCPConfig::MAX_PAYLOAD_SIZE;
+    return res;
+}
+
+uint64_t TCPSender::available_payload_size() const {
     uint64_t buffer_size = _stream.buffer_size();
     uint64_t available_window_size = available_window();
-
     uint64_t res = available_window_size < buffer_size ? available_window_size : buffer_size; 
-    res = res < TCPConfig::MAX_PAYLOAD_SIZE ? res : TCPConfig::MAX_PAYLOAD_SIZE;
     return res;
 }
 
@@ -145,30 +148,34 @@ bool TCPSender::check_seqno_acked(const TCPSegment &seg, const WrappingInt32 ack
     uint64_t abs_seqno = unwrap(seg.header().seqno, _isn, _checkpoint);
     uint64_t payload_length = seg.payload().size();
     uint64_t abs_ackno = unwrap(ackno, _isn, _checkpoint);
-    bool res = false;
-    if (payload_length == 0) {
-        // syn/fin case handler
-        res = abs_seqno < abs_ackno;
-    } else {
-        res = abs_seqno + payload_length <= abs_ackno;
+
+    if (seg.header().syn) {
+        payload_length += 1;
     }
+    if (seg.header().fin) {
+        payload_length += 1;
+    }
+
+    bool res = abs_seqno + payload_length <= abs_ackno;
+
     if (res) {
         _bytes_in_flight -= payload_length;
-        if (seg.header().syn) {
-            _bytes_in_flight -= 1;
-        }
-        if (seg.header().fin) {
-            _bytes_in_flight -= 1;
-        }
     }
     return res;
 }
 
-bool TCPSender::check_ackno_valid(const WrappingInt32 ackno) const {
+bool TCPSender::check_ackno_valid(const WrappingInt32 ackno) {
     uint64_t abs_ackno = unwrap(ackno, _isn, _checkpoint);
     // ackno is beyond next seqno
     if (abs_ackno > _next_seqno) {
         return false;
     }
+
+    // outdated ackno 
+    if (abs_ackno <= _last_ackno) {
+        return false;
+    }
+
+    _last_ackno = abs_ackno;
     return true;
 }

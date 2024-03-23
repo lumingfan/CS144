@@ -21,6 +21,20 @@ class TCPConnection {
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
 
+
+    // if this connect active?
+    bool _active{true};
+
+  private:
+    //! send segments to peer
+    void send_segments();
+
+    //! send rst message
+    void send_rst();
+
+    //! abort the connection
+    void abort_connection();
+
   public:
     //! \name "Input" interface for the writer
     //!@{

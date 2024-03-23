@@ -88,17 +88,12 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
     // timeout
     if (!_segments_outstanding.empty()) {
         _segments_out.push(_segments_outstanding.front());
-    } else {
-        // not need to retrans
-        return ;
+        if (_window_size != 0) {
+            _retrans_times += 1;
+            _retransmission_timeout <<= 1;
+        }
+        restart_timer();
     }
-
-    if (_window_size != 0) {
-        _retrans_times += 1;
-        _retransmission_timeout <<= 1;
-    }
-
-    restart_timer();
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const { return _retrans_times; }
@@ -106,7 +101,7 @@ unsigned int TCPSender::consecutive_retransmissions() const { return _retrans_ti
 void TCPSender::send_empty_segment() {
     TCPSegment seg;
     seg.header().seqno = wrap(_next_seqno, _isn);
-    _segments_out.push(TCPSegment());
+    _segments_out.push(seg);
 }
 
 uint64_t TCPSender::max_payload_size() const { 

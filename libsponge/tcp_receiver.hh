@@ -29,6 +29,9 @@ class TCPReceiver {
     //! The syn bit
     bool _syn = false;
 
+    //! If the fin has been received 
+    bool _fin = false;
+
     //! Initial Sequence Number for syn
     std::unique_ptr<WrappingInt32> _isn{nullptr};
 

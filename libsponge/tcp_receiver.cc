@@ -72,7 +72,7 @@ void TCPReceiver::update_meta() {
         _checkpoint = wbytes;
     }
 
-    // input ended, if fin has been received, stop increase _ack_no
+    // input ended, if fin has been received, stop increasing _ack_no
     if (stream_out().input_ended() && !_fin) {
         _ack_no += 1;
         _fin = true;

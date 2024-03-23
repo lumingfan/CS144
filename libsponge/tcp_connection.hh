@@ -25,6 +25,10 @@ class TCPConnection {
     // if this connect active?
     bool _active{true};
 
+
+    // time since last received segment
+    size_t _time_since_last_segment_received{0};
+
   private:
     //! send segments to peer
     void send_segments();

@@ -88,6 +88,9 @@ void TCPSender::tick(const size_t ms_since_last_tick) {
     // timeout
     if (!_segments_outstanding.empty()) {
         _segments_out.push(_segments_outstanding.front());
+    } else {
+        // not need to retrans
+        return ;
     }
 
     if (_window_size != 0) {

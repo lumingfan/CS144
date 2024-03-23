@@ -74,6 +74,12 @@ void TCPConnection::segment_received(const TCPSegment &seg) {
     // reply
     _sender.fill_window();
     if (seg.header().syn || seg.header().fin || seg.payload().size() != 0) {
+
+        // the remote peer first close the connection
+        if (seg.header().fin && !_sender.stream_in().eof()) {
+            _linger_after_streams_finish = false;
+        }
+
         // at least one segment is sent in reply
         if (_sender.segments_out().empty()) {
             _sender.send_empty_segment();
@@ -125,7 +131,7 @@ void TCPConnection::tick(const size_t ms_since_last_tick) {
     }
 
     // linger time out
-    if (_time_since_last_segment_received < 10 * _cfg.rt_timeout) {
+    if (_linger_after_streams_finish && _time_since_last_segment_received < 10 * _cfg.rt_timeout) {
         should_close = false;
     }
 

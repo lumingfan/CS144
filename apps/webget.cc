@@ -1,5 +1,5 @@
 #include "address.hh"
-#include "socket.hh"
+#include "tcp_sponge_socket.hh"
 #include "util.hh"
 
 #include <cstdlib>
@@ -15,7 +15,7 @@ void get_URL(const string &host, const string &path) {
     // then request the URL path given in the "path" string.
 
     // create a TCP socket, connect to the "http" service on the "host"
-    TCPSocket sock;
+    CS144TCPSocket sock;
     sock.connect(Address(host, "http"));
 
     // construct the http request
@@ -35,6 +35,7 @@ void get_URL(const string &host, const string &path) {
     while (!sock.eof()) {
         std::cout << sock.read();
     }
+    socket.wait_until_closed()
 
     // cerr << "Function called: get_URL(" << host << ", " << path << ").\n";
     // cerr << "Warning: get_URL() has not been implemented yet.\n";

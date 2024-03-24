@@ -1,6 +1,12 @@
 Lab 4 Writeup
 =============
 
+If you failed all tcp in IP tests but passed all other tests, and your wireshark output looks like the following, you need to disable your ufw
+
+![alt text](attachments/lab4_0.png)
+
+
+
 My name: [your name here]
 
 My SUNet ID: [your sunetid here]

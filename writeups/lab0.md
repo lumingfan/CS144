@@ -86,6 +86,61 @@ get_URL use TCPSocket to connect a given host with http protocol, then construct
 Each http line's end delimiter is `\r\n` rather than `\n`.
 
 
+## In-memory reliable byte stream
+
+#### Data Structures
+
+> Copy here the declaration of each new or changed `struct/class` or `struct member`, `global` or `static variable`, `typedef`, or `enumeration`.
+> Identify the purpose of each in 25 words or less.
+
+Added to class ByteStream:
+
+```c++
+// members for implemented bytestream
+bool _input_ended;  // indicate if the input has ended
+size_t _wbytes;     // record how many bytes has been written
+size_t _rbytes;     // record how many bytes has been read
+const size_t _capacity; // the maximum number of bytes it’s willing to store in its own memory at any given point 
+
+/** 
+ * deque allows fast insertion and deletion at both its beginning and its end.
+ * can be replaced with a list or circular vector
+ */
+std::deque<char> _streamp; 
+```
+
+
+#### Algorithm
+
+> Briefly describe your implementation of write()
+
+`write()` pushes data to _stream until the remaining capacity is 0, then increases _wbytes by the number of characters successfully pushed.
+
+
+> Briefly describe your implementation of read()
+
+`read()` attempts to read *len* bytes of data from this stream, it calls `peek_output()` and `pop_output()` to do this, return the string acually read 
+
+
+> When eof() should return true?
+
+when the buffer is empty and input has been ended with `end_input()` by the caller 
+
+
+
+#### Rationale 
+
+> Critique your design, pointing out advantages and disadvantages in
+> your design choices.
+
+The data structure used to simulate a stream can be replaced by a double-linked-list (`std::list` in c++) or circular `std::vector`.
+
+1. the implementation of `std::list` method is identical to that of the `std::deque`. I selected deque because it is still required to use in the next lab(reducing the amount of imported libraries). (although list may be more efficient than deque in this lab). 
+
+2. the implementation of the circular `std::vector` method is more efficient than list/deque methods. However, when capacity is much larger than actually used storage, memory is wasted. And its implementation will be more difficult than the list/deque(in fact, my first version uses a circular vector, see `git checkout 542fd8e`).
+
+
+
 
 
 

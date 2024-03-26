@@ -64,7 +64,7 @@ systemctl enable virtualbox-guest-utils.service
 
 > Please cite any offline or online sources you consulted while preparing your submission, other than the lab handouts, course text, lecture notes
 
-Nothing
+None
 
 
 
@@ -74,7 +74,7 @@ Nothing
 > Copy here the declaration of each new or changed `struct` or `struct member`, `global` or `static variable`, `typedef`, or `enumeration`.
 > Identify the purpose of each in 25 words or less.
 
-Nothing
+None
 
 
 #### Algorithm
@@ -137,7 +137,7 @@ The data structure used to simulate a stream can be replaced by a double-linked-
 
 1. the implementation of `std::list` method is identical to that of the `std::deque`. I selected deque because it is still required to use in the next lab(reducing the amount of imported libraries). (although list may be more efficient than deque in this lab). 
 
-2. the implementation of the circular `std::vector` method is more efficient than list/deque methods. However, when capacity is much larger than actually used storage, memory is wasted. And its implementation will be more difficult than the list/deque(in fact, my first version uses a circular vector, see `git checkout 542fd8e`).
+2. the implementation of the circular `std::vector` method is more efficient than list/deque methods. However, when capacity is much larger than actually used storage, memory is wasted. And its implementation will be more difficult than the list/deque(in fact, my first version uses a circular vector, see `git checkout 542fd8e`). Moreover, byte_stream will be required to dynamically grow and shrink for the lab1. 
 
 
 
